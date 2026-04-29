@@ -8,12 +8,10 @@
 #define MAX_MOTOR_ADJUST_SPEED 150
 #define DISTANCE_TO_CHECK 30
 
-//Right motor
 int enableRightMotor=5;
 int rightMotorPin1=7;
 int rightMotorPin2=8;
 
-//Left motor
 int enableLeftMotor=6;
 int leftMotorPin1=9;
 int leftMotorPin2=10;
@@ -22,7 +20,6 @@ NewPing mySensor(ULTRASONIC_SENSOR_TRIG, ULTRASONIC_SENSOR_ECHO, 400);
 Servo myServo;
 void setup()
 {
-  // put your setup code here, to run once:
   pinMode(enableRightMotor,OUTPUT);
   pinMode(rightMotorPin1,OUTPUT);
   pinMode(rightMotorPin2,OUTPUT);
@@ -41,36 +38,27 @@ void loop()
 
   int distance = mySensor.ping_cm();
 
-  //If distance is within 30 cm then adjust motor direction as below
   if (distance > 0 && distance < DISTANCE_TO_CHECK)
   {
-    //Stop motors
     rotateMotor(0, 0);
     delay(500);  
        
-    //Reverse motors
     rotateMotor(-MAX_MOTOR_ADJUST_SPEED, -MAX_MOTOR_ADJUST_SPEED);        
     delay(200);
     
-    //Stop motors
     rotateMotor(0, 0);
     delay(500);
     
-    //Rotate servo to left    
     myServo.write(180);
     delay(500);
 
-    //Read left side distance using ultrasonic sensor
     int distanceLeft = mySensor.ping_cm();    
 
-    //Rotate servo to right
     myServo.write(0);    
     delay(500);    
 
-    //Read right side distance using ultrasonic sensor   
     int distanceRight = mySensor.ping_cm();
 
-    //Bring servo to center
     myServo.write(90); 
     delay(500);        
     
