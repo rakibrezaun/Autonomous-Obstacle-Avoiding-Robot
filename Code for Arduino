@@ -1,118 +1,162 @@
 #include <Servo.h>
 #include <NewPing.h>
 
+
 #define SERVO_PIN 3
-#define TRIG_PIN 11
-#define ECHO_PIN 12
+#define ULTRASONIC_SENSOR_TRIG 11
+#define ULTRASONIC_SENSOR_ECHO 12
+#define MAX_REGULAR_MOTOR_SPEED 75
+#define MAX_MOTOR_ADJUST_SPEED 150
+#define DISTANCE_TO_CHECK 30
 
-#define ENA 5
-#define IN1 7
-#define IN2 8
 
-#define ENB 6
-#define IN3 9
-#define IN4 10
 
-#define MAX_DISTANCE 200
-#define SAFE_DISTANCE 25
-#define NORMAL_SPEED 80
-#define TURN_SPEED 150
 
-NewPing sonar(TRIG_PIN, ECHO_PIN, MAX_DISTANCE);
-Servo servoMotor;
+int enableRightMotor=5;
+int rightMotorPin1=7;
+int rightMotorPin2=8;
 
-int distanceFront, distanceLeft, distanceRight;
 
-void setup() {
-  pinMode(ENA, OUTPUT);
-  pinMode(IN1, OUTPUT);
-  pinMode(IN2, OUTPUT);
 
-  pinMode(ENB, OUTPUT);
-  pinMode(IN3, OUTPUT);
-  pinMode(IN4, OUTPUT);
 
-  servoMotor.attach(SERVO_PIN);
-  servoMotor.write(90);
+int enableLeftMotor=6;
+int leftMotorPin1=9;
+int leftMotorPin2=10;
 
-  stopMotors();
+
+NewPing mySensor(ULTRASONIC_SENSOR_TRIG, ULTRASONIC_SENSOR_ECHO, 400);
+Servo myServo;
+void setup()
+{
+
+
+  pinMode(enableRightMotor,OUTPUT);
+  pinMode(rightMotorPin1,OUTPUT);
+  pinMode(rightMotorPin2,OUTPUT);
+ 
+  pinMode(enableLeftMotor,OUTPUT);
+  pinMode(leftMotorPin1,OUTPUT);
+  pinMode(leftMotorPin2,OUTPUT);
+
+
+  myServo.attach(SERVO_PIN);
+  myServo.write(90);
+  rotateMotor(0,0);  
 }
 
-void loop() {
-  distanceFront = getDistance();
 
-  if (distanceFront < SAFE_DISTANCE && distanceFront > 0) {
-    avoidObstacle();
-  } else {
-    moveForward(NORMAL_SPEED);
+void loop()
+{
+
+
+  int distance = mySensor.ping_cm();
+
+
+
+
+  if (distance > 0 && distance < DISTANCE_TO_CHECK)
+  {
+
+
+    rotateMotor(0, 0);
+    delay(500);  
+       
+
+
+    rotateMotor(-MAX_MOTOR_ADJUST_SPEED, -MAX_MOTOR_ADJUST_SPEED);        
+    delay(200);
+   
+
+
+    rotateMotor(0, 0);
+    delay(500);
+   
+
+
+    myServo.write(180);
+    delay(500);
+
+
+
+
+    int distanceLeft = mySensor.ping_cm();    
+
+
+
+
+    myServo.write(0);    
+    delay(500);    
+
+
+
+
+    int distanceRight = mySensor.ping_cm();
+
+
+
+
+    myServo.write(90);
+    delay(500);        
+   
+    if (distanceLeft == 0 )
+    {
+      rotateMotor(MAX_MOTOR_ADJUST_SPEED, -MAX_MOTOR_ADJUST_SPEED);
+      delay(200);
+    }
+    else if (distanceRight == 0 )
+    {
+      rotateMotor(-MAX_MOTOR_ADJUST_SPEED, MAX_MOTOR_ADJUST_SPEED);
+      delay(200);
+    }
+    else if (distanceLeft >= distanceRight)
+    {
+      rotateMotor(MAX_MOTOR_ADJUST_SPEED, -MAX_MOTOR_ADJUST_SPEED);
+      delay(200);
+    }
+    else
+    {
+      rotateMotor(-MAX_MOTOR_ADJUST_SPEED, MAX_MOTOR_ADJUST_SPEED);
+      delay(200);      
+    }
+    rotateMotor(0, 0);    
+    delay(200);    
+  }
+  else
+  {
+    rotateMotor(MAX_REGULAR_MOTOR_SPEED, MAX_REGULAR_MOTOR_SPEED);
   }
 }
 
 
-int getDistance() {
-  delay(30);
-  int d = sonar.ping_cm();
-  if (d == 0) d = 250;  // treat 0 as "no obstacle"
-  return d;
-}
 
-void avoidObstacle() {
-  stopMotors();
-  delay(200);
 
-  moveBackward(TURN_SPEED);
-  delay(300);
-
-  stopMotors();
-  delay(200);
-
-  servoMotor.write(160);
-  delay(400);
-  distanceLeft = getDistance();
-
-  servoMotor.write(20);
-  delay(400);
-  distanceRight = getDistance();
-
-  servoMotor.write(90);
-
-  if (distanceLeft > distanceRight) {
-    turnLeft(TURN_SPEED);
-  } else {
-    turnRight(TURN_SPEED);
+void rotateMotor(int rightMotorSpeed, int leftMotorSpeed)
+{
+  if (rightMotorSpeed < 0)
+  {
+    digitalWrite(rightMotorPin1,LOW);
+    digitalWrite(rightMotorPin2,HIGH);    
+  }
+  else if (rightMotorSpeed >= 0)
+  {
+    digitalWrite(rightMotorPin1,HIGH);
+    digitalWrite(rightMotorPin2,LOW);      
   }
 
-  delay(300);
+
+  if (leftMotorSpeed < 0)
+  {
+    digitalWrite(leftMotorPin1,LOW);
+    digitalWrite(leftMotorPin2,HIGH);    
+  }
+  else if (leftMotorSpeed >= 0)
+  {
+    digitalWrite(leftMotorPin1,HIGH);
+    digitalWrite(leftMotorPin2,LOW);      
+  }
+
+
+  analogWrite(enableRightMotor, abs(rightMotorSpeed));
+  analogWrite(enableLeftMotor, abs(leftMotorSpeed));    
 }
 
-
-void moveForward(int speed) {
-  setMotor(speed, speed);
-}
-
-void moveBackward(int speed) {
-  setMotor(-speed, -speed);
-}
-
-void turnLeft(int speed) {
-  setMotor(-speed, speed);
-}
-
-void turnRight(int speed) {
-  setMotor(speed, -speed);
-}
-
-void stopMotors() {
-  setMotor(0, 0);
-}
-
-void setMotor(int rightSpeed, int leftSpeed) {
-  digitalWrite(IN1, rightSpeed >= 0);
-  digitalWrite(IN2, rightSpeed < 0);
-
-  digitalWrite(IN3, leftSpeed >= 0);
-  digitalWrite(IN4, leftSpeed < 0);
-
-  analogWrite(ENA, abs(rightSpeed));
-  analogWrite(ENB, abs(leftSpeed));
-}
